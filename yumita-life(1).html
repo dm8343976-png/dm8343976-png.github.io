@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Yumita Life</title>
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--tx:#1d1d1f;--mu:#6b6b70;--ac:#c8372d;--bl:#1f4e9c;--bd:#e2ded6;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17181c;--card:#23252b;--tx:#f1f0ec;--mu:#a3a3aa;--ac:#ff6b5e;--bl:#7fa8ff;--bd:#34363d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#17181c;--card:#23252b;--tx:#f1f0ec;--mu:#a3a3aa;--ac:#ff6b5e;--bl:#7fa8ff;--bd:#34363d;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;line-height:1.45}
+#app{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:26px;margin:8px 0}h2{font-size:19px;margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:16px;margin:12px 0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.st{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:8px;text-align:center;font-size:13px;color:var(--mu)}
+.st b{display:block;font-size:17px;color:var(--tx)}
+.bar{height:6px;background:var(--bd);border-radius:3px;margin-top:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--bl)}
+button{display:block;width:100%;text-align:left;font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:13px 14px;margin:8px 0;cursor:pointer}
+button:active{transform:scale(.98)}button.p{background:var(--ac);color:#fff;border-color:var(--ac);text-align:center;font-weight:600}
+button:disabled{opacity:.45}
+.mu{color:var(--mu);font-size:14px}
+input,select{display:block;width:100%;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:11px;margin:8px 0}
+button.sel{border:2px solid var(--bl)}.top{display:flex;justify-content:space-between;font-size:14px;color:var(--mu)}
+.g{color:#1f8a4c}.r{color:var(--ac)}
+</style></head><body><div id="app"></div>
+<script>
+const $=document.getElementById("app");
+const C={mia:{n:"Miami",e:"🌴",rent:1100,b:{rest:1.1},d:"Mucho español, alquiler alto"},
+lv:{n:"Las Vegas",e:"🎰",rent:950,b:{hotel:1.25},d:"Hoteles y casinos pagan bien"},
+tx:{n:"Texas",e:"🤠",rent:800,b:{obra:1.2},d:"Barato y con mucha construcción"},
+bos:{n:"Boston",e:"🦞",rent:1600,b:{oficina:1.25},d:"Caro, pero aprendes inglés más rápido"},
+ny:{n:"Nueva York",e:"🗽",rent:2000,b:{oficina:1.2,rest:1.15},d:"La más cara, con muchísimas oportunidades"},
+ca:{n:"California",e:"🌉",rent:1700,b:{obra:1.1,oficina:1.15},d:"Caro, con tecnología, campo y sol"}};
+const J={limp:{n:"Limpieza",pay:2600,k:-4,e:1,min:0},rest:{n:"Restaurante",pay:2400,k:-3,e:2,min:0},
+obra:{n:"Construcción",pay:3000,k:-5,e:1,min:0},hotel:{n:"Hotel / casino",pay:3100,k:-2,e:2,min:40},
+oficina:{n:"Oficina",pay:3600,k:0,e:3,min:65},neg:{n:"Tu propio negocio",pay:4300,k:-4,e:2,min:55}};
+const EV=[
+{t:"Una conocida te propone abrir juntos un negocio de limpieza. Pone $1,500 cada uno.",o:[
+{t:"Invertir los $1,500",d:{m:-1500,k:5,e:2},r:"Arrancan con 8 clientes. Es un riesgo, pero te ilusiona."},
+{t:"Rechazar con cortesía",d:{k:-1},r:"Prefieres lo seguro por ahora."}]},
+{t:"Aparece un jarrón roto en una casa donde trabajas. El dueño pide $600.",o:[
+{t:"Pagar los $600",d:{m:-600,k:3},r:"Te quedas tranquilo y el cliente confía en ti."},
+{t:"Negociar la mitad",d:{m:-300,k:-2},r:"Aceptan, pero queda un ambiente tenso."},
+{t:"Ignorar el reclamo",d:{k:-8,e:0},r:"Pierdes al cliente y te sientes mal."}]},
+{t:"Hay un curso intensivo de inglés por las noches. Cuesta $300.",o:[
+{t:"Inscribirte",d:{m:-300,k:-3,e:8},r:"Terminas cansado, pero entiendes mucho más."},
+{t:"Mejor ahorrar",d:{k:0},r:"Sigues practicando por tu cuenta."}]},
+{t:"Te enfermas y no tienes seguro médico.",o:[
+{t:"Ir a una clínica comunitaria ($400)",d:{m:-400,k:5},r:"Te atienden bien y te recuperas pronto."},
+{t:"Aguantar sin ir",d:{k:-12},r:"Pierdes días de trabajo y te sientes fatal."}]},
+{t:"Consultas con una organización de ayuda legal sobre tus papeles. Piden $250.",o:[
+{t:"Pagar la consulta",d:{m:-250,k:8},r:"Entiendes mejor tus opciones y duermes más tranquilo."},
+{t:"Evitar el tema",d:{k:-6},r:"La duda te sigue pesando."}]},
+{t:"La comunidad organiza una fiesta con comida de tu país.",o:[
+{t:"Ir y llevar algo ($50)",d:{m:-50,k:10,e:1},r:"Conoces gente nueva y te sientes en casa."},
+{t:"Quedarte descansando",d:{k:2},r:"Necesitabas dormir."}]},
+{t:"Un vecino te ofrece alquilarle tu cuarto por un fin de semana largo.",o:[
+{t:"Aceptar ($400)",d:{m:400,k:-5},r:"Dinero extra, pero tu espacio se siente invadido."},
+{t:"Decir que no",d:{k:2},r:"Tu espacio es tu espacio."}]},
+{c:()=>(s.smoke||0)>=6,t:'Llevas semanas tosiendo y te falta el aire al subir escaleras.',o:[
+{t:'Ir al médico',f:()=>({d:{m:-hosp(600),k:-3},r:'El doctor te aconseja dejar de fumar.'})},
+{t:'Ignorarlo',f:()=>Math.random()<.5?{d:{k:-4},r:'La tos sigue, pero aguantas.'}:{d:{m:-hosp(2500),k:-10,sick:1},r:'Terminas en urgencias con una infección en los pulmones.'}}]},
+{c:()=>s.kids>0,t:'Tu hijo amanece con fiebre muy alta.',o:[
+{t:'Llevarlo a urgencias',f:()=>({d:{m:-hosp(1800),k:-5},r:'Los doctores lo revisan y lo mandan a casa con medicina. Respiras aliviado.'})},
+{t:'Esperar un día en casa',f:()=>Math.random()<.6?{d:{k:-3},r:'La fiebre baja sola.'}:{d:{m:-hosp(3000),k:-10,sick:1},r:'Empeora y lo internan. Tienes que quedarte con él y casi no trabajas.'}}]},
+{c:()=>s.kids>0,t:'Hay una función en la escuela de tu hijo el mismo día que tienes turno.',o:[
+{t:'Faltar al trabajo ($150)',d:{m:-150,k:10},r:'Lo ves actuar y te llenas de orgullo.'},
+{t:'Ir a trabajar',d:{k:-8},r:'Te queda la espinita.'}]},
+{c:()=>!!s.partner,t:'Tú y tu pareja discuten por dinero.',o:[
+{t:'Hablarlo con calma',d:{k:6,e:1},r:'Hacen un presupuesto juntos y se sienten más unidos.'},
+{t:'Salir enojado',d:{k:-8},r:'Pasas la noche dando vueltas por la calle.'}]},
+{c:()=>!!s.partner,t:'Tu pareja te sorprende con una cena especial.',o:[
+{t:'Disfrutarla juntos',d:{k:10},r:'Una noche perfecta.'},
+{t:'Estar pendiente del celular',d:{k:-3},r:'Ella nota que estás distraído.'}]},
+{t:'Te resbalas en el trabajo y te golpeas fuerte la espalda. Te duele mucho.',o:[
+{t:'Ir a emergencias',f:()=>({d:{m:-hosp(3200),k:-8,sick:1},r:s.ins?'Tu seguro cubre casi todo. Pagas poco, pero pasas el mes en reposo y cobras menos.':'Te revisan, te dejan en observación y llega una cuenta enorme. Pasas el mes en reposo, cobrando menos.'})},
+{t:'Tomar pastillas y seguir',f:()=>Math.random()<.5?{d:{k:-6},r:'Se te pasa en unos días. Tuviste suerte.'}:{d:{m:-hosp(3800),k:-14,sick:1},r:'Empeora y terminas internado en el hospital. Cuesta más y casi no puedes trabajar este mes.'}}]},
+{t:'Te da un dolor fuerte en el abdomen de madrugada. En el hospital dicen que es apendicitis.',o:[
+{t:'Operarte de emergencia',f:()=>({d:{m:-hosp(6000),k:-12,sick:1},r:s.ins?'La cirugía sale bien. Tu seguro evita que pierdas todo.':'La cirugía sale bien, pero la factura es gigante.'})},
+{t:'Pedir ayuda financiera al hospital',f:()=>({d:{m:-hosp(3800),k:-10,sick:1},r:'Te aprueban un descuento y un plan de pagos. Igual duele, pero es manejable.'})}]},
+{t:'Un virus fuerte te tumba con fiebre alta.',o:[
+{t:'Ir a urgencias',f:()=>({d:{m:-hosp(1200),k:-4,sick:1},r:'Te ponen suero y te mandan a reposo. Pierdes varios días de trabajo.'})},
+{t:'Quedarte con remedios caseros',f:()=>Math.random()<.65?{d:{k:-5,m:-50},r:'Con sopa y descanso te recuperas.'}:{d:{m:-hosp(2500),k:-10,sick:1},r:'Empeoras y terminas en el hospital.'}}]},
+{t:'Una muela te duele horrible.',o:[
+{t:'Ir al dentista ($350)',d:{m:-350,k:5},r:'Te la sacan y vuelves a sonreír.'},
+{t:'Clínica dental comunitaria ($120)',d:{m:-120,k:1},r:'Esperas semanas, pero ahorras.'},
+{t:'Aguantar el dolor',d:{k:-10},r:'Duermes mal y trabajas peor.'}]},
+{t:'Tu mejor amigo termina en el hospital y no tiene a nadie más.',o:[
+{t:'Quedarte con él toda la noche',d:{k:6,e:2,m:-80},r:'Hablas con enfermeras y practicas inglés. Él nunca lo olvidará.'},
+{t:'Pasar solo un rato',d:{k:2,e:1},r:'Lo visitas y sigues con tu vida.'},
+{t:'No ir',d:{k:-8},r:'Te queda un peso en el pecho.'}]},
+{t:'Llevas semanas sin dormir bien y extrañas todo de tu país.',o:[
+{t:'Buscar terapia comunitaria ($60)',d:{m:-60,k:12},r:'Hablar ayuda más de lo que pensabas.'},
+{t:'Llamar a tu familia',d:{k:8},r:'Un rato con ellos te recarga.'},
+{t:'Trabajar más para distraerte',d:{m:300,k:-8},r:'Cobras, pero te vacías por dentro.'}]},
+{t:'Un carro te choca cuando ibas en bicicleta al trabajo.',o:[
+{t:'Ir a que te revisen',f:()=>({d:{m:-hosp(2200),k:-6,sick:1},r:'Solo fueron golpes fuertes, pero necesitas reposo.'})},
+{t:'Decir que estás bien',f:()=>Math.random()<.6?{d:{k:-4},r:'Tienes moretones, pero nada grave.'}:{d:{m:-hosp(3000),k:-10,sick:1},r:'Al día siguiente no puedes ni caminar y terminas en el hospital.'}}]},
+{t:'Te roban el celular en el autobús.',o:[
+{t:'Comprar uno nuevo ($300)',d:{m:-300,k:-2},r:'Lo necesitas para trabajar.'},
+{t:'Comprar uno usado ($120)',d:{m:-120,k:-3},r:'Funciona, aunque con la pantalla rota.'}]},
+{t:'El casero avisa que subirá el alquiler.',o:[
+{t:'Aceptar',d:{m:-150,k:-3},r:'No tienes ganas de mudarte.'},
+{t:'Negociar',f:()=>Math.random()<.5?{d:{k:4,m:-40},r:'Logras que suba solo $40.'}:{d:{k:-4,m:-150},r:'No acepta negociar.'}}]},
+{t:'Te llaman diciendo que ganaste un premio, pero debes pagar $200 primero.',o:[
+{t:'Pagar',d:{m:-200,k:-8},r:'Era una estafa.'},
+{t:'Colgar',d:{k:3},r:'Desconfiaste a tiempo.'}]},
+{t:'Tu jefe nota tu esfuerzo y te ofrece $500 extra si haces dos horas más cada día este mes.',o:[
+{t:'Aceptar',d:{m:500,k:-7},r:'Ganas más, pero llegas rendido a casa.'},
+{t:'Rechazar',d:{k:2},r:'Cuidas tu energía.'}]},
+{t:'Tu mamá llama: necesitan ayuda con una reparación en casa.',o:[
+{t:"Mandar $600",d:{m:-600,k:8},r:"Se alegran mucho. Tú también."},
+{t:"Mandar $200",d:{m:-200,k:3},r:"Es poco, pero ayuda."},
+{t:"Explicar que no puedes",d:{k:-6},r:"Te quedas con culpa."}]}];
+const CE={mia:[{t:"Hay un festival latino en el centro.",o:[{t:"Ir con amigos ($80)",d:{m:-80,k:10,e:1},r:"Baile, comida y nuevas amistades."},{t:"Vender comida allí",d:{m:350,k:2,e:1},r:"Vendes todo en horas."}]}],
+lv:[{t:"Un amigo te invita al casino.",o:[{t:"Apostar $300",f:()=>Math.random()<.4?{d:{m:600,k:8},r:"¡Ganaste $600! No te acostumbres."}:{d:{m:-300,k:-8},r:"Perdiste los $300. Aprendiste."}},{t:"Solo ver el espectáculo ($100)",d:{m:-100,k:7},r:"Una noche inolvidable."},{t:"No ir",d:{k:2},r:"Te quedas con tu dinero."}]}],
+tx:[{t:"Hay horas extra en la obra por una tormenta.",o:[{t:"Hacer las horas extra",d:{m:700,k:-8},r:"Cobras bien, pero terminas agotado."},{t:"Decir que no",d:{k:3},r:"Descansas."}]},
+{t:"Tus vecinos hacen una barbacoa.",o:[{t:"Ir y llevar bebidas ($40)",d:{m:-40,k:9,e:2},r:"Practicas inglés entre risas."}]}],
+ny:[{t:"Pierdes el metro y llegas tarde a tu turno.",o:[{t:"Tomar un taxi ($40)",d:{m:-40,k:2},r:"Llegas a tiempo, pero duele el bolsillo."},{t:"Esperar el siguiente tren",d:{k:-4},r:"Tu jefe frunce el ceño."}]}],
+ca:[{t:"Un amigo te ofrece trabajo temporal en la cosecha.",o:[{t:"Aceptar",d:{m:800,k:-6,e:0},r:"Trabajo duro, pero buen pago."},{t:"Rechazar",d:{k:1},r:"Sigues con tu rutina."}]}],
+bos:[{t:"El invierno llega fuerte y necesitas abrigo.",o:[{t:"Comprar abrigo bueno ($200)",d:{m:-200,k:4},r:"Sobrevives el frío."},{t:"Usar ropa vieja",d:{k:-8},r:"Pasas mucho frío."}]},
+{t:"Un community college ofrece clases nocturnas de inglés.",o:[{t:"Inscribirte ($300)",d:{m:-300,k:-2,e:10},r:"Tu inglés da un salto grande."},{t:"Esperar",d:{},r:"Quizás el próximo semestre."}]}]};
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const O=["México","Colombia","Venezuela","Cuba","República Dominicana","Guatemala","Honduras","El Salvador","Perú","Argentina","Brasil","India","Filipinas","Otro país"];
+const P={est:{n:"🎓 Estudiante",d:"Inglés 45 · $1,500 · ánimo 80",m:1500,k:80,e:45},aho:{n:"💰 Con ahorros",d:"$4,000 · ánimo 70 · inglés 25",m:4000,k:70,e:25},soc:{n:"🎉 Sociable",d:"$1,500 · ánimo 95 · inglés 35",m:1500,k:95,e:35},tra:{n:"🔧 Trabajador con experiencia",d:"$2,200 · ánimo 80 · inglés 25",m:2200,k:80,e:25}};
+let ch={name:"",origin:"México",prof:"est"};
+function start(){creator()}
+function creator(){show(`<h1>🇺🇸 Yumita Life</h1><p class="mu">Crea tu personaje y construye tu vida en 24 meses. No hay historia escrita: tú decides todo.</p><div class="card"><h2>Tu personaje</h2><input value="${esc(ch.name)}" placeholder="Tu nombre" oninput="ch.name=this.value"><select onchange="ch.origin=this.value">${O.map(o=>`<option ${o==ch.origin?"selected":""}>${o}</option>`).join("")}</select></div><h2>Tu perfil</h2>`+Object.keys(P).map(k=>`<button class="${ch.prof==k?"sel":""}" onclick="ch.prof='${k}';creator()"><b>${P[k].n}</b><br><span class="mu">${P[k].d}</span></button>`).join("")+`<button class="p" onclick="ch.name=ch.name.trim()||'Tú';cityPick()">Elegir ciudad →</button>`)}
+let s;
+const fm=n=>(n<0?"-":"")+"$"+Math.abs(Math.round(n)).toLocaleString("en-US");
+const cl=n=>Math.max(0,Math.min(100,n));
+const stats=()=>`<div class="top"><span>${esc(ch.name)}${s.partner?' ❤️':''}${s.kids?' 👶'+s.kids:''} · ${C[s.city].e} ${C[s.city].n} · ${J[s.job].n}</span><span>Mes ${s.month}/24</span></div>
+<div class="stats"><div class="st">💵<b>${fm(s.money)}</b>Dinero</div>
+<div class="st">😀<b>${s.mood}</b>Ánimo<div class="bar"><i style="width:${s.mood}%"></i></div></div>
+<div class="st">🗣️<b>${s.eng}</b>Inglés<div class="bar"><i style="width:${s.eng}%"></i></div></div></div>`;
+const show=h=>{$.innerHTML=h;window.scrollTo(0,0)};
+function cityPick(){
+show(`<h1>🌎 ${esc(ch.name)}</h1><p class="mu">Llegas desde ${ch.origin} a Estados Unidos. Puedes viajar entre ciudades, cambiar de trabajo y tomar decisiones difíciles.</p><h2>¿Dónde empiezas?</h2>`+
+Object.keys(C).map(k=>`<button onclick="go('${k}')">${C[k].e} <b>${C[k].n}</b><br><span class="mu">${C[k].d} · alquiler ${fm(C[k].rent)}</span></button>`).join("")+`<button onclick="creator()">← Volver</button>`)}
+function go(k){const p=P[ch.prof];s={city:k,job:"limp",money:p.m,mood:p.k,eng:p.e,month:1,seen:[]};event()}
+function event(){let pool=[...EV,...(CE[s.city]||[])].filter(e=>!s.seen.includes(e.t)&&(!e.c||e.c()));
+if(!pool.length){s.seen=[];pool=EV}
+const e=pool[Math.floor(Math.random()*pool.length)];s.seen.push(e.t);window._e=e;
+show(stats()+`<div class="card"><h2>Mes ${s.month}</h2><p>${e.t}</p></div>`+e.o.map((o,i)=>`<button onclick="pick(${i})">${o.t}</button>`).join(""))}
+function apply(d){if(d.sick)s.sick=1;s.money+=d.m||0;s.mood=cl(s.mood+(d.k||0));s.eng=cl(s.eng+(d.e||0))}
+function pick(i){const o=window._e.o[i];const x=o.f?o.f():{d:o.d,r:o.r};apply(x.d);
+const ch=[["m",x.d.m,"💵"],["k",x.d.k,"😀"],["e",x.d.e,"🗣️"]].filter(c=>c[1]).map(c=>`<span class="${c[1]>0?"g":"r"}">${c[2]} ${c[1]>0?"+":""}${c[0]=="m"?fm(c[1]):c[1]}</span>`).join(" · ");
+show(stats()+`<div class="card"><p>${x.r}</p><p>${ch}</p></div><button class="p" onclick="hub()">Continuar</button>`)}
+function hub(msg){show(stats()+(msg?`<div class="card">${msg}</div>`:"")+`<h2>¿Qué haces este mes?</h2>
+<button onclick="travel()">✈️ Viajar a otra ciudad <span class="mu">($350)</span></button>
+<button onclick="jobs()">💼 Cambiar de trabajo</button>
+<button onclick="send()">💌 Mandar $500 a tu familia</button>
+<button onclick="toggleIns()">🩺 Seguro médico: ${s.ins?'ACTIVO (quitar)':'Contratar'} <span class="mu">($200/mes)</span></button>
+<button onclick='talk()'>💬 Hablar con alguien</button>
+<button onclick='family()'>👨‍👩‍👧 Tu familia</button>
+<button onclick='places()'>🗺️ Lugares y personajes</button>
+<button onclick='race()'>🏎️ Carrera de carros</button>
+<button onclick='smoke()'>🚬 Cigarros</button>
+<button onclick='biz()'>🏪 Tu propio negocio</button>
+<button onclick='rob()'>🕶️ Hacer algo ilegal</button>
+<button class="p" onclick="next()">Pasar al mes siguiente →</button>`)}
+function travel(){show(stats()+`<h2>¿A dónde viajas?</h2><p class="mu">Cuesta $350 y pierdes un poco de ánimo por la mudanza.</p>`+
+Object.keys(C).filter(k=>k!=s.city).map(k=>`<button ${s.money<350?"disabled":""} onclick="move('${k}')">${C[k].e} <b>${C[k].n}</b><br><span class="mu">${C[k].d} · alquiler ${fm(C[k].rent)}</span></button>`).join("")+`<button onclick="hub()">← Volver</button>`)}
+function move(k){s.money-=350;s.mood=cl(s.mood-5);s.city=k;hub(`Te mudas a <b>${C[k].n}</b>. Todo es nuevo otra vez.`)}
+function jobs(){show(stats()+`<h2>Trabajos</h2>`+Object.keys(J).map(k=>{const j=J[k],ok=s.eng>=j.min,p=j.pay*(C[s.city].b[k]||1);
+return `<button ${ok&&k!=s.job?"":"disabled"} onclick="setJob('${k}')"><b>${j.n}</b> · ${fm(p)}/mes<br><span class="mu">${ok?(k==s.job?"Trabajo actual":"Disponible"):"Necesitas inglés "+j.min}</span></button>`}).join("")+`<button onclick="hub()">← Volver</button>`)}
+function setJob(k){s.job=k;hub(`Ahora trabajas en: <b>${J[k].n}</b>.`)}
+const hosp=n=>s.ins?Math.round(n*.1):n;
+const B=['Tienda de ropa','Taller mecánico','Venta de comida'];
+const SN=['Pérez','Gómez','Ruiz','Torres','Díaz','Silva','Mora','Vega'];
+function bizTick(){if(s.smoke)s.smoke=Math.max(0,s.smoke-1);s.visits=0;if(!s.biz)return;s.biz.clients.forEach(c=>c.age++);s.biz.clients=s.biz.clients.filter(c=>c.age<4);const n=2+Math.floor(Math.random()*3);for(let i=0;i<n;i++)s.biz.clients.push({n:NM[Math.floor(Math.random()*NM.length)]+' '+SN[Math.floor(Math.random()*SN.length)],owed:50*(3+Math.floor(Math.random()*10)),age:0})}
+function biz(msg){if(!s.biz)return show(stats()+"<h2>🏪 Tu propio negocio</h2><p class='mu'>Abrir uno cuesta $1,500 y después $200 al mes de local. Vendes a crédito: tus clientes te deben dinero y tienes que ir a cobrarles. Tienes 3 visitas por mes. Si pasan 4 meses sin cobrar, pierdes esa deuda.</p>"+B.map((b,i)=>`<button onclick='openBiz(${i})'>${b}</button>`).join('')+"<button onclick='hub()'>← Volver</button>");
+const cs=s.biz.clients,tot=cs.reduce((a,c)=>a+c.owed,0);
+show(stats()+`<h2>🏪 ${s.biz.n}</h2>${msg?`<div class='card'>${msg}</div>`:''}<div class='card'><p>Te deben <b>${fm(tot)}</b> entre ${cs.length} clientes.<br>Visitas disponibles este mes: <b>${3-(s.visits||0)}</b></p></div>`+cs.map((c,i)=>`<button onclick='visit(${i})'>🚶 Ir a cobrarle a ${esc(c.n)}<br><span class='mu'>${fm(c.owed)} · ${c.age?c.age+' mes(es) de atraso':'venta de este mes'}</span></button>`).join('')+"<button onclick='hub()'>← Volver</button>")}
+function openBiz(i){if(s.money<1500)return hub('No te alcanza para abrir un negocio: necesitas $1,500.');s.money-=1500;s.biz={n:B[i],clients:[{n:'Doña '+NM[0]+' '+SN[0],owed:300,age:0},{n:'Don Luis '+SN[1],owed:450,age:0}]};s.visits=0;biz('¡Abriste tu negocio! Ya tienes tus primeros clientes: ve a cobrarles.')}
+function visit(i){if((s.visits||0)>=3)return biz('Ya no tienes visitas este mes. Descansa y vuelve el próximo.');s.visits=(s.visits||0)+1;const c=s.biz.clients[i],r=Math.random();let m;
+if(r<.55){s.money+=c.owed;apply({k:2});s.biz.clients.splice(i,1);m=esc(c.n)+' te paga todo: '+fm(c.owed)+'. 😀 +2'}
+else if(r<.8){const h=Math.round(c.owed/2);s.money+=h;c.owed-=h;m=esc(c.n)+' solo puede pagarte la mitad: '+fm(h)+'. Queda debiendo '+fm(c.owed)+'.'}
+else{apply({k:-3});m=esc(c.n)+' dice: “Vuelve la próxima semana.” No te paga. 😀 -3'}
+biz(m)}
+function race(){show(stats()+"<h2>🏎️ Carreras clandestinas</h2><p class='mu'>Apuestas dinero en una carrera de carros. Puedes ganar, perder la apuesta, chocar o que llegue la policía.</p>"+[200,500,1000].map(b=>`<button onclick='doRace(${b})'>Apostar ${fm(b)}</button>`).join('')+"<button onclick='hub()'>← Volver</button>")}
+function doRace(b){if(s.money<b)return hub('No tienes suficiente para esa apuesta.');const r=Math.random();
+if(r<.35){apply({m:b,k:8});return hub('🏁 ¡Ganaste la carrera! Te llevas '+fm(b)+' extra. 😀 +8')}
+if(r<.75){apply({m:-b,k:-4});return hub('Perdiste la carrera y la apuesta de '+fm(b)+'. 😀 -4')}
+if(r<.9){apply({m:-b-hosp(2500),k:-10,sick:1});return hub('💥 Chocaste. Pierdes la apuesta y terminas en el hospital. Pagas '+fm(hosp(2500))+' más.')}
+apply({m:-b,k:-6});s.crime=(s.crime||0)+1;const sec=90+(s.crime-1)*30;
+if(s.crime>=3){s.reason='La policía te detiene en una carrera ilegal por tercera vez. Tus antecedentes terminan de hundirte. 🚔';return jail(s.reason,()=>fin(true),sec,true)}
+jail('🚔 La policía llega a la carrera. Pierdes la apuesta de '+fm(b)+' y te detienen. Antecedentes: '+s.crime+'/3.',()=>hub('Sales en libertad. Ten cuidado con las carreras.'),sec)}
+function smoke(){show(stats()+"<h2>🚬 Cigarros</h2><p class='mu'>Te relajan un momento, pero crean hábito: si fumas mucho, gastas $80 más al mes, baja tu ánimo y tu salud se resiente.</p><button onclick='smokeAct(1)'>🚬 Fumar un cigarro ($10)</button><button onclick='smokeAct(2)'>📦 Comprar una cajetilla ($60)</button>"+((s.smoke||0)>0?"<button onclick='smokeAct(3)'>🚭 Intentar dejar de fumar</button>":'')+"<button onclick='hub()'>← Volver</button>")}
+function smokeAct(a){
+if(a==1){if(s.money<10)return hub('No tienes ni para un cigarro.');s.money-=10;s.smoke=(s.smoke||0)+1;apply({k:3});return hub('Fumas un cigarro y te relajas un momento. 😀 +3'+(s.smoke>=6?'<br>Ya sientes que lo necesitas...':''))}
+if(a==2){if(s.money<60)return hub('No te alcanza para una cajetilla.');s.money-=60;s.smoke=(s.smoke||0)+4;apply({k:6});return hub('Compras una cajetilla. Te sientes mejor ahora, pero el hábito crece. 😀 +6'+(s.smoke>=6?'<br>Ya es un hábito.':''))}
+s.smoke=0;apply({k:-6});hub('Dejas de fumar. Los primeros días son duros, pero tu cuerpo lo agradece. 😀 -6')}
+const chg=d=>[['m',d.m,'💵'],['k',d.k,'😀'],['e',d.e,'🗣️']].filter(c=>c[1]).map(c=>`<span class='${c[1]>0?'g':'r'}'>${c[2]} ${c[1]>0?'+':''}${c[0]=='m'?fm(c[1]):c[1]}</span>`).join(' · ');
+const CHT={vec:[{r:'Tu vecino te cuenta dónde hay trabajos por la zona. “Try the warehouse on Main Street,” te dice.',d:{e:2,k:3}},{r:'Hablan del clima y de comida. Practicas mucho inglés.',d:{e:3,k:2}},{r:'Te presta una herramienta y te invita un café. “Anytime, neighbor!”',d:{k:4,e:1}}],
+trab:[{r:'Tu compañero te enseña un truco para trabajar más rápido. “You’ll get it,” te dice.',d:{e:2,k:2}},{r:'Te cuenta de una vacante mejor pagada y te recomienda. Te dan un bono.',d:{m:200,e:1,k:3}},{r:'Hay chisme y drama en el trabajo. Te quedas con mal sabor.',d:{k:-3,e:1}}],
+des:[{r:'Un turista te pide direcciones y lo logras en inglés. “Thank you so much!”',d:{e:3,k:4}},{r:'Un desconocido te cuenta su historia de cómo llegó a este país. Te sientes menos solo.',d:{k:5,e:1}},{r:'No entiendes nada de lo que te dicen y te da vergüenza.',d:{e:2,k:-3}}]};
+function talk(){show(stats()+"<h2>¿Con quién hablas?</h2><p class='mu'>Conversar mejora tu inglés y tu ánimo. A veces salen oportunidades.</p>"+[['vec','🏘️ Con tu vecino'],['trab','💼 Con un compañero de trabajo'],['des','🧍 Con un desconocido en la calle']].map(a=>`<button onclick="chat('${a[0]}')">${a[1]}</button>`).join('')+"<button onclick='hub()'>← Volver</button>")}
+function chat(k){const o=CHT[k][Math.floor(Math.random()*CHT[k].length)];apply(o.d);hub(o.r+'<br>'+chg(o.d))}
+const NM=['Camila','Daniel','Valeria','Mateo','Lucía','Andrés','Sofía','Diego'];
+function family(){const p=s.partner,k=s.kids||0;show(stats()+`<h2>👨‍👩‍👧 Tu familia</h2><div class='card'><p>Pareja: <b>${p?esc(p)+' ❤️':'nadie por ahora'}</b><br>Hijos: <b>${k}</b></p><p class='mu'>Pareja: +$400/mes de ayuda y más ánimo. Cada hijo: -$500/mes y más ánimo.</p></div>`+(p?`<button onclick='famAct(1)'>🍽️ Tener una cita con ${esc(p)} ($80)</button><button onclick='famAct(2)'>👶 Tener un hijo (${fm(hosp(1500))})</button>`:`<button onclick='famAct(0)'>💘 Salir a conocer a alguien ($60)</button>`)+`<button onclick='famAct(3)'>📞 Llamar a tu familia en ${esc(ch.origin)}</button><button onclick='hub()'>← Volver</button>`)}
+function famAct(a){
+if(a==0){if(s.money<60)return hub('No te alcanza para salir.');s.money-=60;if(Math.random()<.55){s.partner=NM[Math.floor(Math.random()*NM.length)];apply({k:10});return hub('Conoces a <b>'+s.partner+'</b> y hay química. ¡Ahora tienes pareja! ❤️')}apply({k:-2});return hub('La cita no funciona, pero fue una buena experiencia.')}
+if(a==1){s.money-=80;apply({k:8});return hub('Una cita hermosa con '+esc(s.partner)+'. <span class=\'g\'>😀 +8</span>')}
+if(a==2){s.money-=hosp(1500);s.kids=(s.kids||0)+1;apply({k:12,sick:1});return hub('¡Nace tu hijo! 👶 Este mes trabajas menos y los gastos suben, pero tu corazón está lleno.')}
+apply({k:6});hub('Hablas por video con tu familia en '+esc(ch.origin)+'. Te hacen reír y te mandan bendiciones. <span class=\'g\'>😀 +6</span>')}
+function rob(){show(stats()+"<h2>🕶️ Un mal camino</h2><p class='mu'>Puedes ganar dinero rápido, pero arriesgas multas, antecedentes y tu futuro. A la tercera vez que te atrapen, el juego termina.</p>"+[[0,'Robar en una tienda pequeña','$150–300 · riesgo medio · condena 1–2 min'],[1,'Robar a un turista descuidado','$300–600 · riesgo alto · condena 2–4 min'],[2,'Robar en un almacén','$800–1,500 · riesgo muy alto · condena 5–10 min']].map(a=>`<button onclick='doRob(${a[0]})'><b>${a[1]}</b><br><span class='mu'>${a[2]}</span></button>`).join('')+"<button onclick='hub()'>← Volver</button>")}
+function doRob(t){const R=[[150,300,.35],[300,600,.5],[800,1500,.7]][t];
+if(Math.random()>R[2]){const g=R[0]+Math.floor(Math.random()*(R[1]-R[0]));apply({m:g,k:-6});return hub('Sales sin que te vean y consigues '+fm(g)+'. Pero te queda la culpa. '+chg({m:g,k:-6}))}
+s.crime=(s.crime||0)+1;const secs=Math.round((R[0]+Math.floor(Math.random()*(R[1]-R[0])))*.4)+(s.crime-1)*30;const fine=500+t*500;
+if(s.crime>=3){s.reason='Te atraparon por tercera vez. Los antecedentes pesan y tu historia termina tras las rejas. 🚔';return jail(s.reason,()=>fin(true),secs,true)}
+apply({m:-fine,k:-15,sick:1});jail('Te atrapan y pagas una multa de '+fm(fine)+'. Tu ánimo se hunde. Antecedentes: '+s.crime+'/3.',()=>hub('Sales en libertad. Este mes cobrarás menos. Piensa bien tus próximos pasos.'),secs)}
+let jt;
+function jail(msg,then,secs=240,last){if(last)return jailServe(msg,then,secs,last);const lab=secs>=120?Math.round(secs/60)+' minutos':secs+' segundos';
+show(`<h1>⚖️ Juicio</h1><div class='card'><p>${msg}</p><p>👩‍⚖️ <b>Jueza Alvarez</b> preside la audiencia. 🧑‍⚖️ <b>Fiscal Brooks</b> pide una condena de ${lab}. ¿Cómo te defiendes?</p></div><button id='t1'>🧑‍💼 Abogado de oficio (gratis)<br><span class='mu'>Probabilidad media de reducir la condena</span></button><button id='t2'>👔 Abogado privado ($800)<br><span class='mu'>Mejores probabilidades</span></button><button id='t3'>🗣️ Defenderte tú mismo<br><span class='mu'>Tu inglés cuenta mucho</span></button>`);
+const go=(a,h)=>{const r=Math.random(),w=(s.crime||0)>=2?.15:.05;
+if(r<a)return hub('⚖️ La jueza te declara <b>no culpable</b> por falta de pruebas. ¡Sales libre!');
+if(r<a+h)return jailServe('La jueza reduce tu condena a la mitad por tu defensa.',then,Math.round(secs/2));
+if(r<1-w)return jailServe('La jueza confirma la condena.',then,secs);
+return jailServe('La jueza es dura contigo por tus antecedentes: condena aumentada.',then,Math.round(secs*1.5))};
+document.getElementById('t1').onclick=()=>go(.1,.3);
+document.getElementById('t2').onclick=()=>{if(s.money<800){document.getElementById('t2').innerHTML='No tienes $800 para un abogado privado.';return}s.money-=800;go(.3,.4)};
+document.getElementById('t3').onclick=()=>go(.05+s.eng/400,.15+s.eng/300)}
+const LU={
+esc:{n:'Escuela',e:'🏫',d:'Aprende, conoce gente y mejora tu futuro.',acts:[['📚 Clase de inglés ($80)',{m:-80,e:5,k:-1}],['🎓 Estudiar para tu diploma ($150)',{m:-150,e:3,k:1}]],ppl:[
+{n:'Profesora Rivera',e:'👩‍🏫',L:[{r:'“Repeat after me: I am learning every day.” Practicas la pronunciación.',d:{e:3,k:2}},{r:'Te corrige con paciencia y te felicita por avanzar.',d:{e:2,k:3}}],F:{r:'Te consigue una beca parcial para el curso. “You earned it,” dice.',d:{m:200,e:4,k:6}}},
+{n:'Carlos',e:'🧑‍🎓',L:[{r:'Carlos te invita a estudiar juntos en la biblioteca.',d:{e:2,k:3}},{r:'Se ríen de los acentos de ambos y se hacen amigos.',d:{k:5,e:1}}],F:{r:'Carlos te presenta a su tío, que te ofrece un trabajo temporal bien pagado.',d:{m:500,k:5}}}]},
+par:{n:'Parque',e:'🌳',d:'Un respiro entre tanto trabajo.',acts:[['🚶 Pasear un rato (gratis)',{k:4}],['♟️ Jugar ajedrez (gratis)',{k:3,e:1}]],ppl:[
+{n:'Don Pedro',e:'👴',L:[{r:'Don Pedro te cuenta cómo llegó a este país hace 30 años. Te llena de ánimo.',d:{k:5}},{r:'Te gana al ajedrez y te da un consejo de vida.',d:{k:3,e:1}}],F:{r:'Don Pedro te regala sus herramientas viejas y te recomienda con un conocido.',d:{m:300,k:6}}},
+{n:'Ana',e:'🏃‍♀️',L:[{r:'Ana te invita a correr juntos. “Come on, you can do it!”',d:{k:4,e:2}},{r:'Hablan de sus sueños mientras caminan.',d:{k:5}}],F:{r:'Ana te presenta a su grupo de amigos. Ya no te sientes solo.',d:{k:9,e:3}}}]},
+caf:{n:'Cafetería',e:'☕',d:'Café, conversación y oportunidades.',acts:[['☕ Tomar un café ($6)',{m:-6,k:3}],['💻 Trabajar con tu laptop ($6)',{m:-6,e:2,k:1}]],ppl:[
+{n:'Rosa',e:'👩‍🍳',L:[{r:'Rosa te prepara el café como te gusta y te cuenta chismes del barrio.',d:{k:4}},{r:'Te enseña frases útiles en inglés para atender clientes.',d:{e:3,k:1}}],F:{r:'Rosa te regala café gratis de por vida y te recomienda para un trabajo.',d:{m:250,k:6}}},
+{n:'Mr. Hall',e:'🧔',L:[{r:'Mr. Hall te habla de negocios y de cómo ahorrar.',d:{e:2,k:2}},{r:'Te pregunta por tu historia y te escucha con atención.',d:{k:4,e:1}}],F:{r:'Mr. Hall te ofrece un contrato por $600 para un trabajo especial.',d:{m:600,k:3,e:2}}}]},
+fut:{n:'Cancha de fútbol',e:'⚽',d:'Partiños, sudor y amistades.',acts:[['⚽ Jugar un partido ($10)',{m:-10,k:8},.15],['🏃 Entrenar con el equipo (gratis)',{k:4,e:1},.1]],ppl:[
+{n:'Coach Mateo',e:'🧢',L:[{r:'El coach te corrige la técnica: “Pass and move!”',d:{e:2,k:3}},{r:'Te dice que tienes talento y que sigas.',d:{k:6}}],F:{r:'Coach Mateo te consigue un trabajo de mantenimiento en la liga.',d:{m:400,k:5}}},
+{n:'Luis',e:'🧑‍🦱',L:[{r:'Luis y tú celebran un golazo con un abrazo.',d:{k:6}},{r:'Luis te invita a cenar después del partido.',d:{k:4,m:-15}}],F:{r:'Luis te presenta a su equipo y ya tienes una familia aquí.',d:{k:10,e:2}}}]},
+bas:{n:'Cancha de básquet',e:'🏀',d:'Tiros, defensa y mucha energía.',acts:[['🏀 Jugar 3 contra 3 (gratis)',{k:8},.15],['🎯 Practicar tiros libres (gratis)',{k:3},.05]],ppl:[
+{n:'Coach Tina',e:'👩‍🏫',L:[{r:'Coach Tina te enseña a defender mejor: “Stay low, stay ready.”',d:{e:2,k:3}},{r:'Te dice que juegas con corazón.',d:{k:6}}],F:{r:'Coach Tina te recomienda para entrenar a niños los fines de semana.',d:{m:450,k:6}}},
+{n:'Jamal',e:'🧑',L:[{r:'Jamal te reta a un uno contra uno. “Let’s go!” Pierdes, pero te ríes.',d:{k:5,e:2}},{r:'Jamal te cuenta qué barrios tienen mejores trabajos.',d:{k:2,e:1}}],F:{r:'Jamal te presenta a su prima, dueña de un restaurante que busca gente.',d:{m:350,k:5}}}]}};
+function places(){show(stats()+"<h2>🗺️ Lugares</h2><p class='mu'>Cada lugar tiene personajes con los que puedes hacerte amigo y actividades para hacer.</p>"+Object.keys(LU).map(k=>`<button onclick='place("${k}")'>${LU[k].e} <b>${LU[k].n}</b><br><span class='mu'>${LU[k].d}</span></button>`).join('')+"<button onclick='hub()'>← Volver</button>")}
+function place(k,msg){const L=LU[k];s.rel=s.rel||{};show(stats()+`<h2>${L.e} ${L.n}</h2>${msg?`<div class='card'>${msg}</div>`:''}<h2 class='mu' style='font-size:15px'>Actividades</h2>`+L.acts.map((a,i)=>`<button onclick='act("${k}",${i})'>${a[0]}</button>`).join('')+`<h2 class='mu' style='font-size:15px'>Personajes</h2>`+L.ppl.map((p,i)=>`<button onclick='npc("${k}",${i})'>${p.e} Hablar con <b>${p.n}</b> ${'❤️'.repeat(Math.min(s.rel[p.n]||0,5))}</button>`).join('')+"<button onclick='places()'>← Otros lugares</button><button onclick='hub()'>← Menú del mes</button>")}
+function act(k,i){const a=LU[k].acts[i];if(s.money<-(a[1].m||0))return place(k,'No te alcanza el dinero para eso.');apply(a[1]);let m='Lo pasas bien. '+chg(a[1]);if(a[2]&&Math.random()<a[2]){const c=hosp(700);apply({m:-c,k:-6});m='🩹 Te lesionas jugando y pagas '+fm(c)+' en la clínica. '+chg({m:-c,k:-6})}place(k,m)}
+function npc(k,i){const p=LU[k].ppl[i];s.rel=s.rel||{};const n=(s.rel[p.n]||0)+1;s.rel[p.n]=n;const o=n==4?p.F:p.L[Math.floor(Math.random()*p.L.length)];apply(o.d);place(k,p.e+' <b>'+p.n+'</b>'+(n==4?' (¡ya son grandes amigos! 🎉)':'')+': '+o.r+'<br>'+chg(o.d))}
+const JL=[{r:'Un preso veterano te dice: “Don’t trust anyone.” Practicas inglés.',d:{e:2,k:1}},{r:'Un preso te cuenta cómo terminó aquí. Te sirve de lección.',d:{k:-1,e:1}},{r:'Compartes tu comida con un preso y se hacen amigos. Dice que te ayudará afuera.',d:{k:4}},{r:'Un preso te ofrece un plan para escapar. Algo en él te da desconfianza.',d:{k:-2}},{r:'Un preso te enseña inglés jugando cartas.',d:{e:3,k:2}}];
+function jailServe(msg,then,secs=240,last){clearInterval(jt);const J={end:Date.now()+secs*1000,total:secs,fin:false,askP:false,askF:false};const left=()=>Math.max(0,Math.ceil((J.end-Date.now())/1000));const lab=secs>=120?Math.round(secs/60)+' minutos':secs+' segundos';
+show(`<h1>🚔 En prisión</h1><div class='card'><p>${msg}</p><p class='mu'>Condena en tiempo real: ${lab}. Mientras más grande el robo, más larga la condena.</p><h1 id='jtm' style='text-align:center;font-size:56px'></h1><div class='bar'><i id='jbr' style='width:0%'></i></div></div><div id='jlog' class='card' style='display:none'></div><div id='jbt'><button id='b1'>💬 Hablar con un preso</button>${last?'':`<button id='b2'>🏃 Intentar escapar <span class='mu'>(riesgo alto)</span></button><button id='b3'>💵 Pagar fianza: <b id='bl'></b> <span class='mu'>($3 por segundo restante)</span></button>${s.partner?`<button id='b4'>❤️ Pedirle a ${esc(s.partner)} que pague tu fianza</button>`:''}<button id='b5'>📞 Llamar a tu familia para pedir ayuda con la fianza</button>`}</div>`);
+const $i=id=>document.getElementById(id);const log=h=>{if(J.fin)return;const l=$i('jlog');l.style.display='block';l.innerHTML=h};
+const out=fn=>{if(J.fin)return;J.fin=true;clearInterval(jt);fn()};
+$i('b1').onclick=()=>{const o=JL[Math.floor(Math.random()*JL.length)];apply(o.d);log(o.r+'<br>'+chg(o.d))};
+if(!last){
+$i('b2').onclick=()=>{if(Math.random()<.2){out(()=>{s.crime=(s.crime||0)+1;apply({k:-5,m:-300});if(s.crime>=3){s.reason='Escapaste, pero te buscan por todas partes. Tu vida ahora es huir. 🚨';return fin(true)}hub('🏃 ¡Escapaste! Pierdes $300 en el camino y ahora tienes antecedentes por fuga. Antecedentes: '+s.crime+'/3.')})}else{J.end+=60000;J.total+=60;apply({k:-10});log('Te atrapan intentando escapar. Te suman 1 minuto a la condena y tu ánimo cae. <span class=\'r\'>😀 -10</span>')}};
+$i('b3').onclick=()=>{const c=left()*3;if(s.money<c)return log('No tienes suficiente dinero para pagar la fianza ('+fm(c)+').');out(()=>{s.money-=c;hub('Pagas la fianza de '+fm(c)+' y sales en libertad.')})};
+if(s.partner)$i('b4').onclick=()=>{if(J.askP)return log('Ya se lo pediste. No insistas.');J.askP=true;if(Math.random()<.7){out(()=>{apply({k:-3});hub(esc(s.partner)+' paga tu fianza y te recibe afuera. Hay decepción, pero te abraza. <span class=\'r\'>😀 -3</span>')})}else{apply({k:-4});log(esc(s.partner)+' se niega: “Esta vez no.” <span class=\'r\'>😀 -4</span>')}};
+$i('b5').onclick=()=>{if(J.askF)return log('Ya llamaste a tu familia.');J.askF=true;if(Math.random()<.6){const c=Math.round(left()*3/2);out(()=>{apply({k:-4});hub('Tu familia en '+esc(ch.origin)+' reune '+fm(c)+' para ayudarte con la fianza y sales en libertad. Te sientes en deuda con ellos. <span class=\'r\'>😀 -4</span>')})}else{apply({k:-4});log('Tu familia no puede reunir el dinero a tiempo. <span class=\'r\'>😀 -4</span>')}};
+}
+jt=setInterval(()=>{const t=left();if(!$i('jtm')){clearInterval(jt);return}$i('jtm').textContent=Math.floor(t/60)+':'+String(t%60).padStart(2,'0');$i('jbr').style.width=Math.max(0,100-t*100/J.total)+'%';if($i('bl'))$i('bl').textContent=fm(t*3);if(t<=0&&!J.fin){J.fin=true;clearInterval(jt);$i('jbt').innerHTML="<button class='p' id='bx'>Salir en libertad</button>";$i('bx').onclick=then}},1000);
+$i('jtm').textContent=Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0');}
+function jailOld(msg,then,secs=240){clearInterval(jt);const S=secs,end=Date.now()+S*1000,lab=S>=120?Math.round(S/60)+' minutos':S+' segundos';const draw=()=>{const t=Math.max(0,Math.ceil((end-Date.now())/1000));show(`<h1>🚔 En prisión</h1><div class='card'><p>${msg}</p><p class='mu'>Cumples tu condena en tiempo real: ${lab}. Mientras más grande el robo, más larga la condena. No puedes hacer nada hasta que termine.</p><h1 style='text-align:center;font-size:56px'>${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}</h1><div class='bar'><i style='width:${(S-t)*100/S}%'></i></div></div>`+(t<=0?`<button class='p' id='jb'>Salir en libertad</button>`:''));if(t<=0){clearInterval(jt);document.getElementById('jb').onclick=then}};draw();jt=setInterval(draw,1000)}
+function toggleIns(){s.ins=!s.ins;hub(s.ins?'Contratas un seguro médico. Cuesta $200 al mes, pero un hospital te costaría mucho menos.':'Cancelas tu seguro médico. Ahorras $200 al mes, pero corres riesgo.')}
+function send(){if(s.money<500)return hub("No te alcanza para mandar dinero.");s.money-=500;s.mood=cl(s.mood+6);hub("Mandas $500. Tu familia lo agradece mucho. <span class='g'>😀 +6</span>")}
+function next(){const j=J[s.job],c=C[s.city],pay=j.pay*(c.b[s.job]||1)*(s.sick?.4:1),cost=c.rent+450+(s.ins?200:0)+(s.kids||0)*500-(s.partner?400:0)+(s.biz?200:0)+((s.smoke||0)>=6?80:0);s.sick=0;bizTick();
+s.money+=pay-cost;s.mood=cl(s.mood+j.k+(s.mood<40?-2:0)+(s.partner?2:0)+(s.kids?1:0)-((s.smoke||0)>=6?2:0));s.eng=cl(s.eng+j.e+(s.city=="bos"?1:0));s.month++;
+if(s.money<-4000||s.mood<=0)return fin(true);
+if(s.month>24)return fin(false);
+event()}
+function fin(bad){const sc=Math.round(s.money/50+s.mood*5+s.eng*8);
+const t=bad?(s.reason?s.reason:s.mood<=0?"Tu ánimo se rompió. A veces hay que parar y pedir ayuda.":"Te quedaste sin dinero. Es duro, pero muchos empiezan de nuevo."):sc>1800?"🌟 Construiste una vida sólida.":sc>1100?"💪 Saliste adelante con esfuerzo.":"🌱 Fue difícil, pero sigues en pie.";
+show(`<h1>${bad?"Fin del camino":"24 meses después"}</h1><p class="mu">${esc(ch.name)}, de ${ch.origin}</p><div class="card"><p>${t}</p><p>💵 ${fm(s.money)}<br>😀 Ánimo ${s.mood}<br>🗣️ Inglés ${s.eng}<br>📍 ${C[s.city].n} · ${J[s.job].n}</p><h2>Puntaje: ${sc}</h2></div><button class="p" onclick="start()">Jugar otra vez</button>`)}
+start();
+</script></body></html>
